@@ -8,7 +8,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 3000;
 
-// Put your API key directly here
+// Use environment variable for API key (set this in Render)
 const elevenlabs = new ElevenLabsClient({
   apiKey: "d57ed36c45110623212ad8e71de28f8790b76f2f9b362f03bf4bd65cf66da1de"
 });
@@ -26,46 +26,50 @@ app.get("/", (req, res) => {
 
 // IVR handler
 app.post("/ivr-handler", async (req, res) => {
+  try {
+    const digitPressed = req.body.Digits;
+    const fromNumber = req.body.From;
+    const toNumber = req.body.To;
 
-  const digitPressed = req.body.Digits;
-  const fromNumber = req.body.From;
-  const toNumber = req.body.To;
+    console.log("Digit pressed:", digitPressed);
+    console.log("From:", fromNumber);
+    console.log("To:", toNumber);
 
-  console.log("Digit pressed:", digitPressed);
+    const agentId = AGENT_IDS[digitPressed];
 
-  const agentId = AGENT_IDS[digitPressed];
-
-  if (!agentId) {
-    return res.send(`
+    if (!agentId) {
+      console.log("Invalid digit pressed");
+      return res.type('text/xml').send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-<Say>Invalid option. Please try again.</Say>
+  <Say>Invalid option. Please try again.</Say>
 </Response>
 `);
-  }
+    }
 
-  try {
+    console.log("Registering call with agent:", agentId);
 
-const twiml = await elevenlabs.twilio.registerCall({
-  agent_id: agentId,
-  from_number: fromNumber,
-  to_number: toNumber
-});
+    const twiml = await elevenlabs.conversationalAi.registerCall({
+      agent_id: agentId,
+      from_number: fromNumber,
+      to_number: toNumber
+    });
 
-    res.set("Content-Type", "text/xml");
-    res.send(twiml);
+    console.log("TwiML received:", twiml);
+    res.type('text/xml').send(twiml);
 
   } catch (error) {
+    console.error("Error details:", error);
+    console.error("Error message:", error.message);
+    console.error("Error response:", error.response?.data);
 
-    console.error(error);
-
-    res.send(`
+    res.type('text/xml').send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-<Say>Sorry, something went wrong connecting the assistant.</Say>
+  <Say>Sorry, something went wrong connecting the assistant.</Say>
 </Response>
 `);
-
   }
-
 });
 
 app.listen(PORT, () => {
