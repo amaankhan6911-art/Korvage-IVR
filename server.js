@@ -45,11 +45,11 @@ app.post("/ivr-handler", async (req, res) => {
 
   try {
 
-    const twiml = await elevenlabs.conversationalAi.registerCall({
-      agentId: agentId,
-      fromNumber: fromNumber,
-      toNumber: toNumber
-    });
+const twiml = await elevenlabs.twilio.registerCall({
+  agent_id: agentId,
+  from_number: fromNumber,
+  to_number: toNumber
+});
 
     res.set("Content-Type", "text/xml");
     res.send(twiml);
